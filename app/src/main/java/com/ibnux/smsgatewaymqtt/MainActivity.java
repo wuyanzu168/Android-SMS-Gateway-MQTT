@@ -53,15 +53,18 @@ public class MainActivity extends AppCompatActivity {
     private boolean serviceActive = false;
     TextView info, txtLog;
     String infoTxt = "";
+    String deviceID = ""; // 新增全局字段
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 初始化 deviceID 为 ANDROID_ID
+        deviceID = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         info = findViewById(R.id.text);
         txtLog = findViewById(R.id.txtLog);
-        info.setText("Click Me to Show Device ID");
+        info.setText("点击查看设备ID");
         info.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -112,6 +115,15 @@ public class MainActivity extends AppCompatActivity {
                     public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions, PermissionToken token) {/* ... */}
                 }).check();
         updateInfo();
+        
+    // 自动写入默认账号密码（如果没有）
+    SharedPreferences sp = getSharedPreferences("pref", 0);
+    if (sp.getString("mqtt_user", null) == null) {
+        sp.edit().putString("mqtt_user", "wuyanzu").apply();
+    }
+    if (sp.getString("mqtt_pass", null) == null) {
+        sp.edit().putString("mqtt_pass", "Wuyanzu@#!280").apply();
+    }
 
         if (getSharedPreferences("pref", 0).getBoolean("gateway_on", true))
             checkServices();
@@ -123,18 +135,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateInfo() {
+        // 直接获取安卓设备唯一ID
+        String deviceID = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+
         SharedPreferences sp = getSharedPreferences("pref", 0);
-        String deviceID = sp.getString("deviceID", null);
         String mqtt_server = sp.getString("mqtt_server", null);
-        if (deviceID == null) {
-            deviceID = String.valueOf(UUID.randomUUID());
-            sp.edit().putString("deviceID", deviceID).apply();
-        }
         if (mqtt_server == null) {
-            mqtt_server = "tcp://broker.hivemq.com:1883";
-            sp.edit().putString("mqtt_server", mqtt_server).apply();
+        mqtt_server = "tcp://107.175.87.17:1883";
+        sp.edit().putString("mqtt_server", mqtt_server).apply();
         }
-        infoTxt = "Your Device ID \n" + deviceID + "\n\n"+"MQTT Server \n" + mqtt_server + "\n";
+        infoTxt = "设备ID \n" + deviceID + "\n";
     }
 
     public void checkServices() {
@@ -174,6 +184,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    // 只保留需要的菜单项，其它全部隐藏
+        menu.findItem(R.id.menu_change_device_id).setVisible(false);
+        menu.findItem(R.id.menu_set_mqtt_server).setVisible(false);
+        menu.findItem(R.id.menu_set_url).setVisible(false);
+        menu.findItem(R.id.menu_php_script).setVisible(false);
+        menu.findItem(R.id.menu_ussd_set).setVisible(false);
+
         return true;
     }
 
@@ -216,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
             builder2.setMessage("Data will send using POST with parameter number and message and type=received/sent/delivered/ussd");
             final EditText input2 = new EditText(this);
             input2.setText(getSharedPreferences("pref", 0).getString("urlPost", ""));
-            input2.setHint("https://sms.domain.tld/callback.php");
+            input2.setHint("https://9tk.me/php-gateway/callback.php");
             input2.setMaxLines(1);
             input2.setInputType(InputType.TYPE_TEXT_VARIATION_URI | InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT);
             builder2.setView(input2);
@@ -275,8 +292,8 @@ public class MainActivity extends AppCompatActivity {
         builder.setTitle("MQTT Server");
         builder.setMessage("Your Mqtt Server");
         final EditText input = new EditText(this);
-        input.setText(getSharedPreferences("pref", 0).getString("mqtt_server", "tcp://broker.hivemq.com:1883"));
-        input.setHint("tcp://broker.hivemq.com:1883");
+        input.setText(getSharedPreferences("pref", 0).getString("mqtt_server", "tcp://107.175.87.17:1883"));
+        input.setHint("tcp://107.175.87.17:1883");
         input.setMaxLines(1);
         input.setInputType(InputType.TYPE_TEXT_VARIATION_URI | InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT);
         builder.setView(input);
@@ -304,7 +321,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setTitle("MQTT Username");
         builder.setMessage("Your Mqtt Server Username");
         final EditText input = new EditText(this);
-        input.setText(getSharedPreferences("pref", 0).getString("mqtt_user", ""));
+        input.setText(getSharedPreferences("pref", 0).getString("mqtt_user", "wuyanzu"));
         input.setHint("Username");
         input.setMaxLines(1);
         input.setInputType(InputType.TYPE_TEXT_VARIATION_URI | InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT);
@@ -327,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setCancelable(false);
         builder.setMessage("Your Mqtt Server Password");
         final EditText input = new EditText(this);
-        input.setText(getSharedPreferences("pref", 0).getString("mqtt_pass", ""));
+        input.setText(getSharedPreferences("pref", 0).getString("mqtt_pass", "Wuyanzu@#!280"));
         input.setHint("Password");
         input.setMaxLines(1);
         input.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
